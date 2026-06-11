@@ -41,12 +41,29 @@ python main.py --query
 
 4. In query mode, type a question and press Enter. Type `exit`, `quit`, or `q` to stop.
 
+## Configuration
+
+The project can be configured via `config.toml`:
+
+```toml
+[embedding]
+model_name = "BAAI/bge-small-en-v1.5"
+device = "cuda"
+
+[paths]
+db_path = "db/chroma_db"
+docs_path = "docs"
+```
+
+If `config.toml` is missing, the application uses default values (as shown above). You can override any setting by editing the config file.
+
 ## How it works
 
 ### `main.py`
 
-* Instantiates a Hugging Face embedding model: `BAAI/bge-small-en-v1.5`
-* Creates a persistent Chroma vector store at `db/chroma_db`
+* Loads configuration from `config.toml` (or uses defaults)
+* Instantiates a Hugging Face embedding model based on config
+* Creates a persistent Chroma vector store
 * Runs either the ingestion pipeline or the retrieval pipeline based on CLI flags
 
 ### `src/pipelines.py`
@@ -60,6 +77,12 @@ python main.py --query
   * Starts an interactive loop
   * Queries the vector store for the top 3 most relevant chunks
   * Prints retrieved chunk previews and source metadata
+
+### `src/config.py`
+
+* Loads configuration from `config.toml`
+* Provides an `AppConfig` dataclass with model name, device, and path settings
+* Falls back to default values if `config.toml` doesn't exist
 
 ### `src/document_loader.py`
 
@@ -91,18 +114,20 @@ RAG-system/
 ├── db/                        # Persistent Chroma DB storage
 ├── src/                       # Core application modules
 │   ├── __init__.py
+│   ├── config.py
 │   ├── document_loader.py
 │   ├── text_splitter.py
 │   ├── vector_store.py
 │   ├── retriever.py
 │   └── pipelines.py
 ├── main.py                    # CLI entry point
+├── config.toml                # Configuration file
 └── requirements.txt           # Python dependencies
 ```
 
 ## Notes
 
-* `main.py` currently hardcodes the embedding model and device settings.
-* If CUDA is unavailable, change `device="cuda"` to `device="cpu"` in `main.py`.
-* The ingestion pipeline expects at least one valid document in `docs/`.
-* Pass `with_preview=True` inside `src/pipelines.py` if you want sample preview output during ingestion.
+* Configuration is managed via `config.toml` (auto-generated with defaults if missing).
+* To use CPU instead of GPU, edit `config.toml` and change `device = "cuda"` to `device = "cpu"`.
+* The ingestion pipeline expects at least one valid document in the configured `docs_path`.
+* Pass `with_preview=True` to the pipeline functions if you want sample output during ingestion.

@@ -3,7 +3,7 @@ from src.document_loader import load_documents
 from src.text_splitter import split_documents
 from src.retriever import query_vector_store
 
-def run_ingestion_pipeline(docs_path: str, vector_store: VectorStore, with_previews: bool = False, overwrite: bool = False):
+def run_ingestion_pipeline(vector_store: VectorStore, docs_path: str,  with_previews: bool = False, overwrite: bool = False):
     """Starts the ingestion pipeline"""
     documents = load_documents(docs_path, with_preview=with_previews)
 
