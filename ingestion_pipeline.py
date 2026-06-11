@@ -4,8 +4,9 @@ from docling.document_converter import DocumentConverter
 from docling.datamodel.settings import settings
 from docling.datamodel.base_models import ConversionStatus
 from langchain_core.documents import Document
+from langchain_core.embeddings import Embeddings
 from langchain_text_splitters import CharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from dotenv import load_dotenv
 
@@ -63,7 +64,7 @@ def load_documents(docs_directory: str, with_preview: bool = False) -> list[Docu
         
     return documents
 
-def split_documents(documents: list[Document], chunk_size: int = 500, chunk_overlap: int = 0, with_preview: bool = False):
+def split_documents(documents: list[Document], chunk_size: int = 500, chunk_overlap: int = 0, with_preview: bool = False) -> list[Document]:
     """Splits documents into chunks with overlap"""
     
     splitter = CharacterTextSplitter(
@@ -83,15 +84,35 @@ def split_documents(documents: list[Document], chunk_size: int = 500, chunk_over
     
     return chunks
 
+def create_vector_store(chunks: list[Document], embedding_model: Embeddings, persist_directory: str):
+    """Create and persist ChromaDB vector store"""
+    
+    vector_store = Chroma.from_documents(
+        documents=chunks,
+        embedding=embedding_model,
+        persist_directory=persist_directory,
+        collection_metadata={"hnsw:space": "cosine"}
+    )
+    
+    return vector_store
+
 def main():
-    # Load the files
+    # Load the documents
     documents = load_documents("docs", with_preview=True)
 
-    # chunk the files
+    # Chunk the documents
     chunks = split_documents(documents, with_preview=True)
     
-    # embedding the chunks
-    # store the embeddings
+    # Embedding model 
+    embedding_model = HuggingFaceEmbeddings(
+        model_name="BAAI/bge-small-en-v1.5",
+        model_kwargs={'device': 'cuda'}
+    )
+
+    # Create store from documents using embedding model
+    vector_store = create_vector_store(chunks, embedding_model=embedding_model, persist_directory="db/chroma_db")
+
+
 
 if __name__ == "__main__":
     load_dotenv()
