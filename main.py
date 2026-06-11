@@ -1,5 +1,5 @@
-from src.vector_store import get_embedding_model, create_chromadb_vector_store
 import argparse
+from src.vector_store import get_embedding_model, create_chromadb_vector_store
 from src import pipelines
 
 def main():
