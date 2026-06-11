@@ -9,7 +9,7 @@ def get_embedding_model(model_name: str, device: str = "cuda") -> Embeddings:
         model_kwargs={'device': device}
     )
 
-def create_vector_store(embedding_model: Embeddings, persist_directory: str, overwrite: bool = False):
+def create_chromadb_vector_store(embedding_model: Embeddings, persist_directory: str, overwrite: bool = False):
     """Create and persist ChromaDB vector store"""
     
     vector_store = Chroma(
@@ -17,7 +17,7 @@ def create_vector_store(embedding_model: Embeddings, persist_directory: str, ove
         persist_directory=persist_directory,
         collection_metadata={"hnsw:space": "cosine"}
     )
-
+    
     if overwrite:
         existing_data = vector_store.get()
         record_count = len(existing_data.get("ids", []))
