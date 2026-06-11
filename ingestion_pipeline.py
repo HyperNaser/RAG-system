@@ -1,6 +1,6 @@
 #type: ignore
 import os
-from langchain_community.document_loaders import TextLoader, DirectoryLoader
+from docling.document_converter import DocumentConverter
 from langchain_text_splitters import CharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
