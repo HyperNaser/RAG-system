@@ -10,6 +10,7 @@ from langchain_chroma import Chroma
 from dotenv import load_dotenv
 
 def _get_files(directory: Path):
+    """Creates a file path generator"""
     for root, dirs, files in directory.walk():
         for file in files:
             if file.startswith('.'):
@@ -57,15 +58,38 @@ def load_documents(docs_directory: str, with_preview: bool = False) -> list[Docu
         for i, doc in enumerate(documents[0:3]):
             print(f"\tDocument {i+1}:")
             print(f"\t\tsource: {doc.metadata["source"]}")
-            print(f"\t\tcontent: {doc.page_content[0:50]}...")
+            print(f"\t\tLength: {len(doc.page_content)}")
+            print(f"\t\tcontent: {doc.page_content[:50]}...")
         
     return documents
+
+def split_documents(documents: list[Document], chunk_size: int = 500, chunk_overlap: int = 0, with_preview: bool = False):
+    """Splits documents into chunks with overlap"""
     
+    splitter = CharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap
+    )
+    
+    chunks = splitter.split_documents(documents)
+    
+    if with_preview:
+        print("Preview of first 3 chunks:")
+        for i, chunk in enumerate(chunks):
+            print(f"\tChunk {i+1}:")
+            print(f"\t\tSource: {chunk.metadata["source"]}")
+            print(f"\t\tLength: {len(chunk.page_content)}")
+            print(f"\t\tContent: {chunk.page_content[:50]}...")
+    
+    return chunks
+
 def main():
     # Load the files
     documents = load_documents("docs", with_preview=True)
 
     # chunk the files
+    chunks = split_documents(documents, with_preview=True)
+    
     # embedding the chunks
     # store the embeddings
 
