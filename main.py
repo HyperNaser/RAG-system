@@ -1,4 +1,3 @@
-from dotenv import load_dotenv
 from src.document_loader import load_documents
 from src.text_splitter import split_documents
 from src.vector_store import create_vector_store, get_embedding_model
@@ -20,5 +19,4 @@ def main():
 
 
 if __name__ == "__main__":
-    load_dotenv()
     main()
