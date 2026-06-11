@@ -84,15 +84,21 @@ def split_documents(documents: list[Document], chunk_size: int = 500, chunk_over
     
     return chunks
 
-def create_vector_store(chunks: list[Document], embedding_model: Embeddings, persist_directory: str):
+def create_vector_store(embedding_model: Embeddings, persist_directory: str, overwrite: bool = False):
     """Create and persist ChromaDB vector store"""
     
-    vector_store = Chroma.from_documents(
-        documents=chunks,
-        embedding=embedding_model,
+    vector_store = Chroma(
+        embedding_function=embedding_model,
         persist_directory=persist_directory,
         collection_metadata={"hnsw:space": "cosine"}
     )
+
+    if overwrite:
+        if vector_store._collection.count() > 0:
+            print("Clearing records from vector storage")
+            vector_store.reset_collection()
+        else:
+            print("Vector storage is already empty")
     
     return vector_store
 
@@ -109,9 +115,10 @@ def main():
         model_kwargs={'device': 'cuda'}
     )
 
-    # Create store from documents using embedding model
-    vector_store = create_vector_store(chunks, embedding_model=embedding_model, persist_directory="db/chroma_db")
-
+    # Create store
+    vector_store = create_vector_store(embedding_model=embedding_model, persist_directory="db/chroma_db", overwrite=True)
+    
+    vector_store.add_documents(chunks)
 
 
 if __name__ == "__main__":
