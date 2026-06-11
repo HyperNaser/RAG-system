@@ -7,16 +7,15 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_chroma import Chroma
 from dotenv import load_dotenv
 
-def main():
-    # Load the files
-    docs = Path("docs")
-    if not docs.exists:
-        raise FileNotFoundError(f"The directory 'docs' does not exists. Please create it and fill it with documents.")
+def load_documents(docs_directory: str, with_preview: bool = False) -> list[Document]:
+    docs_path = Path(docs_directory)
+    if not docs_path.exists:
+        raise FileNotFoundError(f"The directory '{docs_path}' does not exists. Please create it and fill it with documents.")
 
     converter = DocumentConverter()
 
-    documents = []
-    for root, dirs, files in docs.walk():
+    documents: list[Document] = []
+    for root, dirs, files in docs_path.walk():
         for file in files:
             if file.startswith('.'):
                 continue
@@ -41,18 +40,24 @@ def main():
                 print(f"Skipping {file} due to an error: {e}")
 
     if len(documents) == 0:
-        raise FileNotFoundError(f"No files found in 'docs'. Please add documents.")
+        raise FileNotFoundError(f"No files found in '{docs_path}'. Please add documents.")
     
-    print("Preview of first three documents:")
-    for i, doc in enumerate(documents[0:3]):
-        print(f"\tDocument {i+1}:")
-        print(f"\t\tsource: {doc.metadata["source"]}")
-        print(f"\t\tcontent: {doc.page_content[0:50]}...")
+    if with_preview:
+        print("Preview of first three documents:")
+        for i, doc in enumerate(documents[0:3]):
+            print(f"\tDocument {i+1}:")
+            print(f"\t\tsource: {doc.metadata["source"]}")
+            print(f"\t\tcontent: {doc.page_content[0:50]}...")
+        
+    return documents
+    
+def main():
+    # Load the files
+    documents = load_documents("docs", with_preview=True)
 
     # chunk the files
     # embedding the chunks
     # store the embeddings
-    print("from main")
 
 if __name__ == "__main__":
     load_dotenv()
