@@ -2,7 +2,7 @@ import argparse
 from dotenv import load_dotenv
 from src.vector_store import get_embedding_model, create_chromadb_vector_store
 from src.config import config
-from src import pipelines
+from src.pipelines import IngestionPipeline, RetrievalPipeline, ScrapingPipeline
 
 
 def main():
@@ -19,11 +19,11 @@ def main():
     vector_store = create_chromadb_vector_store(embedding_model=embedding_model, persist_directory=config.DB_PATH)
 
     if args.ingest:
-        pipelines.run_ingestion_pipeline(vector_store=vector_store, docs_path=config.DOCS_PATH, with_previews=True, overwrite=True)
+        IngestionPipeline(vector_store=vector_store, docs_path=config.DOCS_PATH, with_previews=True, overwrite=True).run()
     elif args.query:
-        pipelines.run_retrieval_pipeline(vector_store=vector_store)
+        RetrievalPipeline(vector_store=vector_store).run()
     elif args.scrape:
-        pipelines.run_scrape_pipeline(docs_path=config.DOCS_PATH)
+        ScrapingPipeline(docs_path=config.DOCS_PATH).run()
 
 if __name__ == "__main__":
     load_dotenv()
