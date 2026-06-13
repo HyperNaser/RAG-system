@@ -13,6 +13,6 @@ def query_vector_store(query_text: str, vector_store: VectorStore, k: int = 3):
     print(f"Found {len(results)} relevant chunks:")
     for i, doc in enumerate(results):
         print(f"\nMatch {i+1} (Source: {doc.metadata.get('filename')}):")
-        print(f"   {doc.page_content[:200]}...")
+        print(f"   {doc.page_content}...")
         
     return results
