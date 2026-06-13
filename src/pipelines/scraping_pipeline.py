@@ -10,8 +10,9 @@ from pathvalidate import sanitize_filename
 from typing import Any
 
 class ScrapingPipeline(BasePipeline):
-    def __init__(self, docs_path: str) -> None:
+    def __init__(self, docs_path: str, engine: str = "google") -> None:
         self.docs_path = docs_path
+        self.engine = engine
     
     def _execute(self):
         client = serpapi.Client(api_key=os.getenv("SERPAPI_KEY"), timeout=10)
@@ -30,7 +31,7 @@ class ScrapingPipeline(BasePipeline):
                     break
 
                 results = client.search({ #type: ignore
-                    "engine": "google",
+                    "engine": self.engine,
                     "q": query,
                 })
 
