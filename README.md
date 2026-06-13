@@ -1,6 +1,6 @@
 # Local RAG Experimentation Platform
 
-A modular, local Retrieval-Augmented Generation (RAG) backend built in Python. This repository ingests local documents, converts them to Markdown, splits text into retrievable chunks, generates local embeddings, and stores them in a persistent Chroma vector database.
+A modular, local Retrieval-Augmented Generation (RAG) backend built in Python. This repository ingests local documents, converts them to Markdown, splits text into retrievable chunks, generates local embeddings, and stores them in a persistent Chroma vector database. It then uses a local LLM (via Ollama) to generate contextually-aware answers based on retrieved documents.
 
 ## Features
 
@@ -9,7 +9,8 @@ A modular, local Retrieval-Augmented Generation (RAG) backend built in Python. T
 * Chunking with `langchain_text_splitters` (`chunk_size=500`, `chunk_overlap=0`)
 * Local embedding generation with `HuggingFaceEmbeddings`
 * Persistent vector storage with `Chroma`
-* Interactive CLI retrieval session with top-k similarity search
+* Local LLM inference via Ollama for RAG-powered question answering
+* Interactive CLI retrieval session with contextual answer generation
 * Web scraping via Google Search (powered by SerpAPI) to populate vector store
 
 ## Prerequisites
@@ -18,6 +19,7 @@ A modular, local Retrieval-Augmented Generation (RAG) backend built in Python. T
 * A `docs/` folder containing the source documents to ingest
 * A local GPU if you want to use the default `device="cuda"` setting
 * `db/chroma_db` is used to persist the vector store between runs
+* **Ollama** running locally (default: `http://localhost:11434`) for LLM inference
 * (Optional) `SERPAPI_KEY` environment variable for web scraping via Google Search
 
 ## Installation
@@ -58,12 +60,22 @@ The project can be configured via `config.toml`:
 model_name = "BAAI/bge-small-en-v1.5"
 device = "cuda"
 
+[llm]
+model_name = "qwen2.5:3b"
+base_url = "http://localhost:11434"
+num_ctx = 4096
+
 [paths]
 db_path = "db/chroma_db"
 docs_path = "docs"
 ```
 
 If `config.toml` is missing, the application uses default values (as shown above). You can override any setting by editing the config file.
+
+**LLM Configuration Notes:**
+* `model_name`: The Ollama model to use for inference (e.g., `qwen2.5:3b`, `llama2`, `mistral`)
+* `base_url`: The Ollama server URL (default: `http://localhost:11434`)
+* `num_ctx`: Context window size for the LLM (default: `4096`)
 
 ## How it works
 
@@ -72,7 +84,8 @@ If `config.toml` is missing, the application uses default values (as shown above
 * Loads configuration from `config.toml` (or uses defaults)
 * Instantiates a Hugging Face embedding model based on config
 * Creates a persistent Chroma vector store
-* Runs either the ingestion pipeline or the retrieval pipeline based on CLI flags
+* Initializes the local LLM via Ollama when needed
+* Runs the ingestion, retrieval, or scraping pipeline based on CLI flags
 
 ### `src/pipelines/base.py`
 
@@ -91,9 +104,11 @@ If `config.toml` is missing, the application uses default values (as shown above
 ### `src/pipelines/retrieval_pipeline.py`
 
 * `RetrievalPipeline` class that:
+  * Initializes the local LLM and builds a RAG chain
   * Starts an interactive loop
-  * Queries the vector store for the top 3 most relevant chunks
-  * Prints retrieved chunk previews and source metadata
+  * For each query: retrieves the top 3 most relevant chunks and generates contextual answers
+  * Uses a prompt template to ensure the LLM answers only from retrieved context
+  * Displays both the retrieved sources and generated answers
 
 ### `src/pipelines/scraping_pipeline.py`
 
@@ -107,8 +122,9 @@ If `config.toml` is missing, the application uses default values (as shown above
 ### `src/config.py`
 
 * Loads configuration from `config.toml`
-* Provides an `AppConfig` dataclass with model name, device, and path settings
+* Provides an `AppConfig` dataclass with embedding settings, LLM settings, and path settings
 * Falls back to default values if `config.toml` doesn't exist
+* Default LLM: `qwen2.5:3b` on `http://localhost:11434` with `4096` token context window
 
 ### `src/document_loader.py`
 
@@ -130,7 +146,14 @@ If `config.toml` is missing, the application uses default values (as shown above
 ### `src/retriever.py`
 
 * Performs similarity search against the vector store
-* Returns top-k matches and prints the first 200 characters of each match
+* Returns top-k matches for use in the RAG chain
+
+### `src/llm.py`
+
+* Initializes a `ChatOllama` instance for local LLM inference
+* Ensures the requested model is downloaded from Ollama (with user consent)
+* Handles interactive model downloading with progress tracking
+* Provides error handling for Ollama connection and API issues
 
 ## Repository structure
 
@@ -145,6 +168,7 @@ rag-system/
 │   ├── text_splitter.py
 │   ├── vector_store.py
 │   ├── retriever.py
+│   ├── llm.py                     # Local LLM initialization and management
 │   └── pipelines/                 # Pipeline implementations
 │       ├── __init__.py
 │       ├── base.py                # Abstract base pipeline class
@@ -159,11 +183,14 @@ rag-system/
 ## Notes
 
 * Configuration is managed via `config.toml` (auto-generated with defaults if missing).
-* To use CPU instead of GPU, edit `config.toml` and change `device = "cuda"` to `device = "cpu"`.
+* **Ollama must be running** before starting a retrieval session. Start it with `ollama serve`.
+* To use CPU instead of GPU for embeddings, edit `config.toml` and change `device = "cuda"` to `device = "cpu"`.
 * The ingestion pipeline expects at least one valid document in the configured `docs_path`.
 * Pass `with_previews=True` to pipeline instances if you want sample output during ingestion.
 * For web scraping functionality, set the `SERPAPI_KEY` environment variable with your SerpAPI API key.
 * Scraped documents are saved as JSON files in the `docs/` directory and can be ingested with the standard ingestion pipeline.
 * The `ScrapingPipeline` uses Google as the default search engine. To use a different engine, instantiate `ScrapingPipeline(docs_path=config.DOCS_PATH, engine="bing")` (or any other SerpAPI-supported engine).
+* If the requested LLM model is not found locally, the application will prompt you to download it from Ollama.
+* The RAG chain uses a system prompt to ensure the LLM only answers from provided context, reducing hallucinations.
 
 

@@ -4,10 +4,22 @@ from langchain_huggingface import HuggingFaceEmbeddings
 
 def get_embedding_model(model_name: str, device: str = "cuda") -> Embeddings:
     """Initializes local embedding model"""
-    return HuggingFaceEmbeddings(
-        model_name=model_name,
-        model_kwargs={'device': device}
-    )
+    try:
+        return HuggingFaceEmbeddings(
+            model_name=model_name,
+            model_kwargs={
+                "device": device,
+                "local_files_only": True
+            }
+        )
+    except Exception:
+        return HuggingFaceEmbeddings(
+            model_name=model_name,
+            model_kwargs={
+                "device": device,
+                "local_files_only": False
+            }
+        )
 
 def create_chromadb_vector_store(embedding_model: Embeddings, persist_directory: str, overwrite: bool = False):
     """Create and persist ChromaDB vector store"""

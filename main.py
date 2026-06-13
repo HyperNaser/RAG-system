@@ -15,15 +15,18 @@ def main():
 
     args = parser.parse_args()
 
+    if args.scrape:
+        ScrapingPipeline(docs_path=config.DOCS_PATH).run()
+        return
+
+    print("Initializing embedding model and vector store context...")
     embedding_model = get_embedding_model(model_name=config.MODEL_NAME, device=config.DEVICE)
     vector_store = create_chromadb_vector_store(embedding_model=embedding_model, persist_directory=config.DB_PATH)
 
     if args.ingest:
         IngestionPipeline(vector_store=vector_store, docs_path=config.DOCS_PATH, with_previews=True, overwrite=True).run()
     elif args.query:
-        RetrievalPipeline(vector_store=vector_store).run()
-    elif args.scrape:
-        ScrapingPipeline(docs_path=config.DOCS_PATH).run()
+        RetrievalPipeline(vector_store=vector_store, app_config=config).run()
 
 if __name__ == "__main__":
     load_dotenv()
